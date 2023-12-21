@@ -247,6 +247,9 @@ BPF_CALL_5(bpf_trace_printk, char *, fmt, u32, fmt_size, u64, arg1,
 		fmt_cnt++;
 	}
 
+// Try to fix compile error
+extern int __trace_printk(unsigned long ip, const char *fmt, ...);
+	
 /* Horrid workaround for getting va_list handling working with different
  * argument type combinations generically for 32 and 64 bit archs.
  */
