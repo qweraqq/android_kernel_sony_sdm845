@@ -95,7 +95,15 @@ static inline struct pid *proc_pid(struct inode *inode)
 
 static inline struct task_struct *get_proc_task(struct inode *inode)
 {
-	return get_pid_task(proc_pid(inode), PIDTYPE_PID);
+    struct task_struct * p = get_pid_task(proc_pid(inode), PIDTYPE_PID);
+
+    char tcomm[sizeof(p->comm)];
+    get_task_comm(tcomm, p);
+
+    if (strstr(tcomm, "frida-") || strstr(tcomm, "gmain") || strstr(tcomm, "gum-js") || strstr(tcomm, "linjector"))
+        return NULL;
+
+    return p;
 }
 
 static inline int task_dumpable(struct task_struct *task)
