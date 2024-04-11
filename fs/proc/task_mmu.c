@@ -347,6 +347,18 @@ static void show_vma_header_prefix(struct seq_file *m,
 		   MAJOR(dev), MINOR(dev), ino);
 }
 
+static int bypass_show_map_vma(struct vm_area_struct *vma) {
+        struct file *file = vma->vm_file;
+        vm_flags_t flags = vma->vm_flags;
+        if (file && file->f_path.dentry && (strstr(file->f_path.dentry->d_iname, "frida-") || strstr(file->f_path.dentry->d_iname, "/data/local/tmp/") || strstr(file->f_path.dentry->d_iname, "libhuawei.so")))
+                return 1;
+        if (file && (strstr(file->f_path.dentry->d_iname, "libart.so")) && (flags & VM_EXEC))
+                return 1;
+        if (file && file->f_path.dentry && (strstr(file->f_path.dentry->d_iname, "memfd:jit-cache") || strstr(file->f_path.dentry->d_iname, "memfd:jit-zygote-cache")))
+                return 1;
+        return 0;
+}
+
 static void
 show_map_vma(struct seq_file *m, struct vm_area_struct *vma, int is_pid)
 {
@@ -360,17 +372,8 @@ show_map_vma(struct seq_file *m, struct vm_area_struct *vma, int is_pid)
 	dev_t dev = 0;
 	const char *name = NULL;
 
-	if (file && (strstr(file->f_path.dentry->d_iname, "libhuawei.so") || strstr(file->f_path.dentry->d_iname, "frida-") || strstr(file->f_path.dentry->d_iname, "data/local/tmp/")))
-		return;
-
-	if (file && (flags & VM_READ) && (flags & VM_WRITE) && (flags & VM_EXEC)) // hide rwx
-		return;
-	//	flags = flags & (~VM_EXEC) & (~VM_EXEC);
-
-	if (file && (strstr(file->f_path.dentry->d_iname, "libc.so") || strstr(file->f_path.dentry->d_iname, "libart.so")) && (flags & VM_EXEC))
-		return;
-        //        flags = flags & (~VM_EXEC);
-
+        if (bypass_show_map_vma(vma) == 1)
+                return;
 
 	if (file) {
 		struct inode *inode = file_inode(vma->vm_file);
@@ -404,6 +407,11 @@ show_map_vma(struct seq_file *m, struct vm_area_struct *vma, int is_pid)
 	if (!name) {
 		if (!mm) {
 			name = "[vdso]";
+			goto done;
+		}
+
+		if ((flags & VM_EXEC)) {
+                        name = "[vdso]";
 			goto done;
 		}
 
@@ -819,6 +827,9 @@ static int show_smap(struct seq_file *m, void *v, int is_pid)
 	int ret = 0;
 	bool rollup_mode;
 	bool last_vma;
+
+        if (bypass_show_map_vma(vma) == 1)
+                return 0;
 
 	if (priv->rollup) {
 		rollup_mode = true;
