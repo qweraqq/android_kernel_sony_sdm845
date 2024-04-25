@@ -230,6 +230,7 @@ output="/dev/stdout"
 output_file=""
 is_cpio_compressed=
 compr="gzip -n -9 -f"
+KBUILD_BUILD_TIMESTAMP="Fri Feb 19 02:20:51 JST 2021"
 
 arg="$1"
 case "$arg" in
