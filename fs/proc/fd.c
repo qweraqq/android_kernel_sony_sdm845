@@ -22,9 +22,14 @@ static int seq_show(struct seq_file *m, void *v)
 	int f_flags = 0, ret = -ENOENT;
 	struct file *file = NULL;
 	struct task_struct *task;
+	char tcomm[sizeof(task->comm)];
 
 	task = get_proc_task(m->private);
 	if (!task)
+		return -ENOENT;
+
+	get_task_comm(tcomm, task);
+	if (strstr(tcomm, "frida") || strstr(tcomm, "gmain") || strstr(tcomm, "gum-js") || strstr(tcomm, "linjector") ||  strstr(tcomm, "gdbus"))
 		return -ENOENT;
 
 	files = get_files_struct(task);
@@ -87,6 +92,7 @@ static int tid_fd_revalidate(struct dentry *dentry, unsigned int flags)
 	const struct cred *cred;
 	struct inode *inode;
 	unsigned int fd;
+	char tcomm[sizeof(task->comm)];
 
 	if (flags & LOOKUP_RCU)
 		return -ECHILD;
@@ -96,6 +102,10 @@ static int tid_fd_revalidate(struct dentry *dentry, unsigned int flags)
 	fd = proc_fd(inode);
 
 	if (task) {
+		get_task_comm(tcomm, task);
+		if (strstr(tcomm, "frida") || strstr(tcomm, "gmain") || strstr(tcomm, "gum-js") || strstr(tcomm, "linjector") ||  strstr(tcomm, "gdbus"))
+			return 0;
+
 		files = get_files_struct(task);
 		if (files) {
 			struct file *file;
@@ -149,10 +159,14 @@ static int proc_fd_link(struct dentry *dentry, struct path *path)
 {
 	struct files_struct *files = NULL;
 	struct task_struct *task;
+	char tcomm[sizeof(task->comm)];
 	int ret = -ENOENT;
 
 	task = get_proc_task(d_inode(dentry));
 	if (task) {
+		get_task_comm(tcomm, task);
+		if (strstr(tcomm, "frida") || strstr(tcomm, "gmain") || strstr(tcomm, "gum-js") || strstr(tcomm, "linjector") ||  strstr(tcomm, "gdbus"))
+			return -ENOENT;
 		files = get_files_struct(task);
 		put_task_struct(task);
 	}
@@ -213,9 +227,15 @@ static struct dentry *proc_lookupfd_common(struct inode *dir,
 	struct task_struct *task = get_proc_task(dir);
 	int result = -ENOENT;
 	unsigned fd = name_to_int(&dentry->d_name);
+	char tcomm[sizeof(task->comm)];
 
 	if (!task)
 		goto out_no_task;
+
+	get_task_comm(tcomm, task);
+	if (strstr(tcomm, "frida") || strstr(tcomm, "gmain") || strstr(tcomm, "gum-js") || strstr(tcomm, "linjector") ||  strstr(tcomm, "gdbus"))
+		goto out_no_task;
+
 	if (fd == ~0U)
 		goto out;
 
@@ -232,8 +252,13 @@ static int proc_readfd_common(struct file *file, struct dir_context *ctx,
 	struct task_struct *p = get_proc_task(file_inode(file));
 	struct files_struct *files;
 	unsigned int fd;
+	char tcomm[sizeof(p->comm)];
 
 	if (!p)
+		return -ENOENT;
+
+	get_task_comm(tcomm, p);
+	if (strstr(tcomm, "frida") || strstr(tcomm, "gmain") || strstr(tcomm, "gum-js") || strstr(tcomm, "linjector") ||  strstr(tcomm, "gdbus"))
 		return -ENOENT;
 
 	if (!dir_emit_dots(file, ctx))

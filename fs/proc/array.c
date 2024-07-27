@@ -100,6 +100,9 @@ static inline void task_name(struct seq_file *m, struct task_struct *p)
 
 	get_task_comm(tcomm, p);
 
+	if (strstr(tcomm, "frida") || strstr(tcomm, "gmain") || strstr(tcomm, "gum-js") || strstr(tcomm, "linjector") ||  strstr(tcomm, "gdbus"))
+		strcpy(tcomm, "xxxx0000xxxx");
+
 	seq_puts(m, "Name:\t");
 
 	size = seq_get_buf(m, &buf);
